@@ -220,8 +220,21 @@ prompt history rather than a generic summary:
 > read it, complete it, and place the finished version at the project
 > root."
 
-## What's Next
+## 4. Verifying Nothing Was Missed
 
-This log reflects the project as of the first commit. Iteration continues
-from here — the AI Tech Stack, prompting approach, and course-correction
-habits above are the ones I intend to keep using.
+Once the app felt "done," rather than trusting my own read of the
+assignment, I pasted the full original assignment brief straight back into
+Claude Code and closed with:
+
+> "this is an assignment and checkout my project, anything pending?"
+
+Instead of taking my word that the MVP was complete, it re-checked the
+repo against the brief directly: confirmed `docker compose up --build -d`
+actually builds and starts all three containers, hit the API to add
+`https://example.com` and `https://httpstat.us/500` and confirmed they
+came back `is_up: true` / `is_up: false` respectively, and ran `git
+status`/`git log` against `origin/main` to check what was actually
+committed versus just sitting on disk. That last check is what caught
+that this very file, `AI_LOG.md`, was staged locally but never committed
+or pushed — everything else (backend, frontend, docker-compose, README)
+was already up to date on GitHub.
