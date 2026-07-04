@@ -2,12 +2,27 @@ import { useEffect, useState, useCallback } from 'react'
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 const POLL_INTERVAL_MS = 5000
+const MS_IN_DAY = 1000 * 60 * 60 * 24
 
 function formatTime(isoString) {
   if (!isoString) return '—'
   return new Date(isoString).toLocaleTimeString(undefined, {
     timeZoneName: 'short',
   })
+}
+
+function formatDate(isoString) {
+  if (!isoString) return '—'
+  return new Date(isoString).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function formatMs(ms) {
+  if (ms == null) return '—'
+  return ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : `${Math.round(ms)} ms`
 }
 
 function StatusBadge({ isUp }) {
@@ -21,12 +36,152 @@ function StatusBadge({ isUp }) {
   )
 }
 
+function sslStatus(expiresAt) {
+  if (!expiresAt) return null
+  const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / MS_IN_DAY)
+  let level = 'ok'
+  if (days < 0) level = 'expired'
+  else if (days <= 7) level = 'critical'
+  else if (days <= 30) level = 'warning'
+  return { days, level }
+}
+
+function SslBadge({ url, expiresAt }) {
+  const status = sslStatus(expiresAt)
+  if (!status) {
+    const isHttps = url.startsWith('https://')
+    return (
+      <span className="ssl-badge ssl-none">
+        {isHttps ? 'cert unknown' : 'no TLS'}
+      </span>
+    )
+  }
+
+  const { days, level } = status
+  const label =
+    level === 'expired'
+      ? `expired ${formatDate(expiresAt)}`
+      : `expires in ${days}d (${formatDate(expiresAt)})`
+
+  return <span className={`ssl-badge ssl-${level}`}>🔒 {label}</span>
+}
+
+function TimingBreakdown({ dns_ms, connect_ms, tls_ms }) {
+  const segments = [
+    { key: 'dns', label: 'DNS', value: dns_ms },
+    { key: 'connect', label: 'Connect', value: connect_ms },
+    { key: 'tls', label: 'TLS', value: tls_ms },
+  ].filter((s) => s.value != null)
+
+  if (segments.length === 0) {
+    return <p className="timing-empty">Connection timing unavailable</p>
+  }
+
+  const total = segments.reduce((sum, s) => sum + s.value, 0) || 1
+
+  return (
+    <div className="timing">
+      <div className="timing-bar">
+        {segments.map((s) => (
+          <div
+            key={s.key}
+            className={`timing-segment timing-${s.key}`}
+            style={{ width: `${(s.value / total) * 100}%` }}
+            title={`${s.label}: ${formatMs(s.value)}`}
+          />
+        ))}
+      </div>
+      <div className="timing-legend">
+        {segments.map((s) => (
+          <span key={s.key} className="timing-legend-item">
+            <span className={`timing-dot timing-${s.key}`} />
+            {s.label} {formatMs(s.value)}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function getInitialTheme() {
+  const stored = localStorage.getItem('theme')
+  return stored === 'light' ? 'light' : 'dark'
+}
+
+function ThemeToggle({ theme, onToggle }) {
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={onToggle}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label="Toggle color theme"
+    >
+      {theme === 'dark' ? '☀️' : '🌙'}
+    </button>
+  )
+}
+
+function MonitorCard({ monitor }) {
+  const m = monitor
+  return (
+    <div className={`monitor-card status-border-${m.is_up === false ? 'down' : m.is_up ? 'up' : 'unknown'}`}>
+      <div className="monitor-card-header">
+        <div>
+          <h3 className="monitor-name">{m.name || m.url}</h3>
+          {m.name && <div className="monitor-url">{m.url}</div>}
+        </div>
+        <StatusBadge isUp={m.is_up} />
+      </div>
+
+      <div className="monitor-stats">
+        <div className="stat">
+          <span className="stat-label">Status</span>
+          <span className="stat-value">{m.status_code ?? '—'}</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">TTFB</span>
+          <span className="stat-value">{formatMs(m.ttfb_ms)}</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Total</span>
+          <span className="stat-value">{formatMs(m.response_time_ms)}</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Checked</span>
+          <span className="stat-value">{formatTime(m.last_checked_at)}</span>
+        </div>
+      </div>
+
+      <div className="monitor-section">
+        <span className="section-label">Connection timing</span>
+        <TimingBreakdown dns_ms={m.dns_ms} connect_ms={m.connect_ms} tls_ms={m.tls_ms} />
+      </div>
+
+      <div className="monitor-section monitor-footer">
+        <SslBadge url={m.url} expiresAt={m.ssl_expires_at} />
+        {m.error_reason && (
+          <span className="error-cell" title={m.error_reason}>
+            {m.error_reason}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [monitors, setMonitors] = useState([])
   const [url, setUrl] = useState('')
   const [name, setName] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [theme, setTheme] = useState(getInitialTheme)
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('theme', theme)
+  }, [theme])
 
   const fetchMonitors = useCallback(async () => {
     try {
@@ -75,7 +230,10 @@ export default function App() {
 
   return (
     <div className="page">
-      <h1>Uptime Monitor</h1>
+      <div className="page-header">
+        <h1>Uptime Monitor</h1>
+        <ThemeToggle theme={theme} onToggle={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))} />
+      </div>
 
       <form className="add-form" onSubmit={handleSubmit}>
         <input
@@ -98,47 +256,15 @@ export default function App() {
 
       {error && <p className="error">{error}</p>}
 
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>URL</th>
-            <th>Status</th>
-            <th>Status code</th>
-            <th>Response time</th>
-            <th>Error</th>
-            <th>Last checked</th>
-          </tr>
-        </thead>
-        <tbody>
+      {monitors.length === 0 ? (
+        <div className="empty-state">No monitors yet. Add a URL above to get started.</div>
+      ) : (
+        <div className="monitor-grid">
           {monitors.map((m) => (
-            <tr key={m.id}>
-              <td>{m.name || '—'}</td>
-              <td className="url-cell">{m.url}</td>
-              <td>
-                <StatusBadge isUp={m.is_up} />
-              </td>
-              <td>{m.status_code ?? '—'}</td>
-              <td>
-                {m.response_time_ms != null
-                  ? `${Math.round(m.response_time_ms)} ms`
-                  : '—'}
-              </td>
-              <td className="error-cell" title={m.error_reason || undefined}>
-                {m.error_reason || '—'}
-              </td>
-              <td>{formatTime(m.last_checked_at)}</td>
-            </tr>
+            <MonitorCard key={m.id} monitor={m} />
           ))}
-          {monitors.length === 0 && (
-            <tr>
-              <td colSpan={7} className="empty-row">
-                No monitors yet. Add a URL above to get started.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+        </div>
+      )}
     </div>
   )
 }

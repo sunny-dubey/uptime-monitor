@@ -30,4 +30,9 @@ class MonitorRead(SQLModel):
     status_code: Optional[int] = None
     response_time_ms: Optional[float] = None
     error_reason: Optional[str] = None
+    dns_ms: Optional[float] = None
+    connect_ms: Optional[float] = None
+    tls_ms: Optional[float] = None
+    ttfb_ms: Optional[float] = None
+    ssl_expires_at: Optional[datetime] = None
     last_checked_at: Optional[datetime] = None

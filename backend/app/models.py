@@ -25,6 +25,13 @@ class HealthCheck(SQLModel, table=True):
     status_code: Optional[int] = None
     response_time_ms: Optional[float] = None
     error_reason: Optional[str] = None
+    dns_ms: Optional[float] = None
+    connect_ms: Optional[float] = None
+    tls_ms: Optional[float] = None
+    ttfb_ms: Optional[float] = None
+    ssl_expires_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True))
+    )
     checked_at: datetime = Field(
         default_factory=utcnow,
         sa_column=Column(DateTime(timezone=True), index=True),

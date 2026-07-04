@@ -45,6 +45,11 @@ def _to_monitor_read(session: Session, monitor: Monitor) -> MonitorRead:
         status_code=latest.status_code if latest else None,
         response_time_ms=latest.response_time_ms if latest else None,
         error_reason=latest.error_reason if latest else None,
+        dns_ms=latest.dns_ms if latest else None,
+        connect_ms=latest.connect_ms if latest else None,
+        tls_ms=latest.tls_ms if latest else None,
+        ttfb_ms=latest.ttfb_ms if latest else None,
+        ssl_expires_at=latest.ssl_expires_at if latest else None,
         last_checked_at=latest.checked_at if latest else None,
     )
 
