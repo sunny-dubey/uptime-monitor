@@ -44,6 +44,7 @@ def _to_monitor_read(session: Session, monitor: Monitor) -> MonitorRead:
         is_up=latest.is_up if latest else None,
         status_code=latest.status_code if latest else None,
         response_time_ms=latest.response_time_ms if latest else None,
+        error_reason=latest.error_reason if latest else None,
         last_checked_at=latest.checked_at if latest else None,
     )
 

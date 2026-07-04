@@ -21,13 +21,15 @@ async def check_one(client: httpx.AsyncClient, monitor: Monitor) -> HealthCheck:
             is_up=is_up,
             status_code=response.status_code,
             response_time_ms=elapsed_ms,
+            error_reason=None if is_up else f"HTTP {response.status_code}",
         )
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
         return HealthCheck(
             monitor_id=monitor.id,
             is_up=False,
             status_code=None,
             response_time_ms=None,
+            error_reason=f"{type(exc).__name__}: {exc}",
         )
 
 

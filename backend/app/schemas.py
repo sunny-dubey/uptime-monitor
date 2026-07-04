@@ -29,4 +29,5 @@ class MonitorRead(SQLModel):
     is_up: Optional[bool] = None
     status_code: Optional[int] = None
     response_time_ms: Optional[float] = None
+    error_reason: Optional[str] = None
     last_checked_at: Optional[datetime] = None

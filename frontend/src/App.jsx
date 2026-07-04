@@ -106,6 +106,7 @@ export default function App() {
             <th>Status</th>
             <th>Status code</th>
             <th>Response time</th>
+            <th>Error</th>
             <th>Last checked</th>
           </tr>
         </thead>
@@ -123,12 +124,15 @@ export default function App() {
                   ? `${Math.round(m.response_time_ms)} ms`
                   : '—'}
               </td>
+              <td className="error-cell" title={m.error_reason || undefined}>
+                {m.error_reason || '—'}
+              </td>
               <td>{formatTime(m.last_checked_at)}</td>
             </tr>
           ))}
           {monitors.length === 0 && (
             <tr>
-              <td colSpan={6} className="empty-row">
+              <td colSpan={7} className="empty-row">
                 No monitors yet. Add a URL above to get started.
               </td>
             </tr>

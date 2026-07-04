@@ -90,6 +90,15 @@ th {
   white-space: nowrap;
 }
 
+.error-cell {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
 .empty-row {
   text-align: center;
   color: #888;
