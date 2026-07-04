@@ -256,6 +256,52 @@ export default function App() {
 
       {error && <p className="error">{error}</p>}
 
+      <details className="metrics-info">
+        <summary>What do the labels on each card mean?</summary>
+        <dl>
+          <dt>up / down / checking…</dt>
+          <dd>
+            Badge in the card header. "up" means the last check got an HTTP
+            2xx/3xx status; "down" means it errored or returned 4xx/5xx;
+            "checking…" means no check has completed yet.
+          </dd>
+          <dt>Status</dt>
+          <dd>The HTTP status code returned by the most recent check.</dd>
+          <dt>TTFB</dt>
+          <dd>
+            Time To First Byte — from the actual HTTP request, the time from
+            request start until the first response byte arrives.
+          </dd>
+          <dt>Total</dt>
+          <dd>
+            From the same HTTP request, the time from start until the full
+            response body has been read.
+          </dd>
+          <dt>Checked</dt>
+          <dd>The local time of the most recent check.</dd>
+          <dt>Connection timing (DNS / Connect / TLS)</dt>
+          <dd>
+            Measured on a separate probe connection opened in parallel with
+            the real request, since the HTTP client doesn't expose per-phase
+            timing. This approximates DNS lookup, TCP handshake, and TLS
+            handshake time, but it is not a breakdown of TTFB or Total —
+            they won't add up exactly.
+          </dd>
+          <dt>SSL badge</dt>
+          <dd>
+            Certificate expiry from the same probe connection: shows days
+            until expiry (color-coded ok/warning/critical/expired), "cert
+            unknown" if the probe couldn't retrieve it, or "no TLS" for
+            plain HTTP URLs.
+          </dd>
+          <dt>Error text</dt>
+          <dd>
+            Shown only when the last check failed — either the HTTP status
+            reason or the exception raised while making the request.
+          </dd>
+        </dl>
+      </details>
+
       {monitors.length === 0 ? (
         <div className="empty-state">No monitors yet. Add a URL above to get started.</div>
       ) : (
